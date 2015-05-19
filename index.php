@@ -2,70 +2,96 @@
 
 class Calculator
 {
-	public function evaluate($string)
+	public function evaluate($equation)
 	{
 		$pattern = "/([-+*%\/])/";
-		$array = preg_split($pattern, $string, -1, PREG_SPLIT_DELIM_CAPTURE);
-		$len = count($array);
-		$total = 0;
-		var_dump($array);
-		for ($i = 0; $i < $len; $i++)
+		$originalEq = preg_split($pattern, $equation, -1, PREG_SPLIT_DELIM_CAPTURE);
+		$modifiedEq = array();
+		$origLen = count($originalEq);
+
+		for ($i = 0; $i < $origLen; $i++)
 		{
-			if ($array[$i] === '*' || $array[$i] === '/' || $array[$i] === '%')
+			$operator = $originalEq[$i];
+
+			if ($operator === '+' || $operator === '-')
 			{
-				$a = floatval($array[$i-1]);
-				$b = floatval($array[$i+1]);
-				$total = $this->operators($array[$i], $a, $b);
-				$array[$i-1] = 0;
-				$array[$i] = '+';
-				$array[$i+1] = $total;
-				var_dump($array);
+				array_push($modifiedEq, floatval($originalEq[$i - 1]), $operator);
+			}
+			elseif ($operator === '*' || $operator === '/' || $operator === '%')
+			{
+				$initial = floatval($originalEq[$i - 1]);
+				$result = $this->recursiveMultDiv($originalEq, $i, $initial);
+				$i = $result[1];
+
+				array_push($modifiedEq, $result[0]);
+
+				if ($i !== $origLen - 1)
+				{
+					array_push($modifiedEq, $originalEq[$i]);
+				}
 			}
 		}
 
-		for ($j = 0; $j < $len; $j++)
+		$modLen = count($modifiedEq);
+
+		for ($j = 0; $j < $modLen; $j++)
 		{
-			if ($array[$j] === '+' || $array[$j] === '-')
+			$operator = $modifiedEq[$j];
+
+			if ($operator === '+' || $operator === '-')
 			{
-				$a = floatval($array[$j-1]);
-				$b = floatval($array[$j+1]);
-				$total = $this->operators($array[$j], $a, $b);
-				$array[$j-1] = 0;
-				$array[$j] = '+';
-				$array[$j+1] = $total;
-				var_dump($array);
+				$initial = floatval($modifiedEq[$j - 1]);
+				$result = $this->recursiveAddSub($modifiedEq, $j, $initial);
+				$total = $result[0];
+				break;
 			}
 		}
-		echo $total;
+
+		return $total;
 	}	
 
-	function operators($string, $a, $b)
+	private function recursiveAddSub($array, $i, $result)
 	{
-		if ($string === '+')
+		if ($array[$i] === '+')
 		{
-			return $a + $b;
+			$result = $result + floatval($array[$i + 1]);
 		}
-		elseif ($string === '-')
+		elseif ($array[$i] === '-')
 		{
-			return $a - $b;
+			$result = $result - floatval($array[$i + 1]);
 		}
-		elseif ($string === '*')
+		elseif ($i === count($array) - 1)
 		{
-			return $a * $b;
+			return array($result, $i);
 		}
-		elseif ($string === '/')
+
+		return $this->recursiveAddSub($array, $i + 1, $result);
+	}
+
+	private function recursiveMultDiv($array, $i, $result)
+	{
+		if ($array[$i] === '*')
 		{
-			return $a / $b;
-		}
-		elseif ($string === '%')
+			$result *= floatval($array[$i + 1]);
+		} 
+		elseif ($array[$i] === '/')
 		{
-			return $a % $b;
+			$result /= floatval($array[$i + 1]);
 		}
+		elseif ($array[$i] === '%')
+		{
+			$result %= $array[$i + 1];
+		}
+		elseif ($array[$i] === '+' || $array[$i] === '-' || $i === count($array) - 1)
+		{
+			return array($result, $i);
+		}
+
+		return $this->recursiveMultDiv($array, $i + 1, $result);
 	}
 }
 
 $calculator = new Calculator();
-$calculator->evaluate('1+2*3-4%5+6/7-8*9%10');
-// $eval = 1+2*3-4%5+6/7-8*9%10;
-// echo $eval;
+echo $calculator->evaluate('1+2*3-4%5+6/7-8*9%10');
+
 ?>
